@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile Builder — Topographic Maps Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4efe1; --paper-edge:#e9e1cd; --panel:#fbf8f0;
+    --contour:#9a6b3c; --contour-index:#6e431f; --hill:#ead9bb;
+    --water:#5e8ca3; --grid:#ddd3bc; --guide:#c2a878;
+    --ink:#2c2722; --ink-soft:#6f655a;
+    --cherry:#9e1b34; --cherry-dk:#7e1228;
+    --correct:#3f7d4e; --line:#d9cfb6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;padding:28px 20px 64px}
+  .wrap{max-width:860px;margin:0 auto}
+  .lab-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 22px;padding:8px;background:var(--panel);border:1px solid var(--paper-edge);border-radius:12px}
+  .lab-nav-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:14px;margin-right:6px;padding:0 6px;color:var(--ink)}
+  .lab-nav a{font-family:'IBM Plex Mono',monospace;font-size:12.5px;text-decoration:none;color:var(--ink-soft);padding:7px 11px;border-radius:8px;border:1px solid transparent;transition:background .12s,color .12s}
+  .lab-nav a:hover{background:#f0e6d2;color:var(--ink)}
+  .lab-nav a[aria-current="page"]{background:var(--cherry);color:#fff}
+  .lab-nav a:focus-visible{outline:2px solid var(--cherry);outline-offset:2px}
+  .name-row{display:flex;align-items:center;gap:9px;font-size:14px;margin-bottom:13px;flex-wrap:wrap}
+  .name-row input{font-family:'Inter',sans-serif;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 11px;background:#fff;color:var(--ink);min-width:200px}
+  .name-row input:focus{outline:2px solid var(--cherry);outline-offset:1px;border-color:var(--cherry)}
+  .submit-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{background:#f6f1e6}
+
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--cherry);font-weight:600;margin:0 0 6px}
+  h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.05;margin:0 0 10px;letter-spacing:-.01em}
+  .lede{font-size:15.5px;color:var(--ink-soft);margin:0 0 22px;max-width:64ch}
+  .lede strong{color:var(--ink);font-weight:600}
+  .stage{background:var(--panel);border:1px solid var(--paper-edge);border-radius:14px;padding:18px;box-shadow:0 1px 0 #fff inset,0 8px 28px -18px rgba(60,45,20,.5)}
+  .canvas-frame{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--paper-edge);background:var(--paper)}
+  canvas{display:block;width:100%;height:auto;touch-action:none;cursor:pointer}
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;align-items:center}
+  .btn{font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;border-radius:8px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);transition:background .12s,border-color .12s}
+  .btn:hover{background:#f6f1e6}
+  .btn.primary{background:var(--cherry);color:#fff;border-color:var(--cherry)}
+  .btn.primary:hover{background:var(--cherry-dk)}
+  .btn:focus-visible,.switch input:focus-visible{outline:2px solid var(--cherry);outline-offset:2px}
+  .switch{display:inline-flex;gap:7px;align-items:center;font-size:13.5px;cursor:pointer;user-select:none;margin-left:6px}
+  .switch input{accent-color:var(--cherry);width:16px;height:16px}
+  .status{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);margin-left:auto}
+  .status b{color:var(--ink)}
+  .hint-line{font-size:12.5px;color:var(--ink-soft);margin-top:12px;font-style:italic}
+  .questions{margin-top:34px}
+  .q{margin-bottom:20px}
+  .q label{display:block;font-weight:500;margin-bottom:7px;font-size:15px}
+  .q .num{font-family:'IBM Plex Mono',monospace;color:var(--cherry);font-weight:600;margin-right:6px}
+  textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-family:'Inter',sans-serif;font-size:14.5px;background:var(--panel);resize:vertical;min-height:72px;color:var(--ink)}
+  textarea:focus{outline:2px solid var(--cherry);outline-offset:1px;border-color:var(--cherry)}
+  .submit-block{margin-top:30px;background:var(--panel);border:1px solid var(--paper-edge);border-radius:14px;padding:20px}
+  .submit-block h2{font-family:'Fraunces',serif;font-weight:600;font-size:20px;margin:0 0 6px}
+  .submit-block p{margin:0 0 14px;font-size:13.5px;color:var(--ink-soft)}
+  #output{width:100%;min-height:150px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;border:1px dashed var(--line);border-radius:9px;padding:13px;background:#fff;white-space:pre-wrap;color:var(--ink);margin-top:14px;display:none}
+  .copied{color:var(--correct);font-size:13px;font-weight:500;margin-left:10px;opacity:0;transition:opacity .2s}
+  .copied.show{opacity:1}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="lab-nav" aria-label="Lab activities">
+    <span class="lab-nav-title">Topographic Maps Lab</span>
+    <a href="contour-drawing.html">1 · Draw contours</a>
+    <a href="profile-builder.html" aria-current="page">2 · Build a profile</a>
+    <a href="real-quad-reading.html">3 · Read the real quad</a>
+  </nav>
+  <p class="eyebrow">Topographic Maps · Activity 2</p>
+  <h1>Build the topographic profile</h1>
+  <p class="lede">The map up top shows two hills with a transect line from <strong>A</strong> to <strong>B</strong>. Each dot is where a contour crosses that line. Your job: in the graph below, click on each dashed guide at the elevation of the contour it came from. The points connect into a side-view <strong>profile</strong> of the terrain. Contour interval is <strong>40&nbsp;ft</strong>; A and B sit at 400&nbsp;ft to start you off.</p>
+
+  <div class="stage">
+    <div class="canvas-frame">
+      <canvas id="cv" width="800" height="640" aria-label="Topographic map with transect above an elevation profile grid"></canvas>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="check">Check my profile</button>
+      <button class="btn" id="clear">Clear points</button>
+      <label class="switch"><input type="checkbox" id="reveal">Show correct profile</label>
+      <span class="status" id="status">Plotted <b>0</b> of 10</span>
+    </div>
+    <p class="hint-line">Click anywhere on a dashed guide line in the lower graph; the point snaps to the nearest elevation. Click again to move it. Read each contour's value off the labeled rings on the map.</p>
+  </div>
+
+  <div class="questions">
+    <p class="eyebrow" style="margin-top:6px">Read your profile</p>
+    <div class="q">
+      <label><span class="num">1.</span>Which of the two hills is taller, and what feature of your finished profile shows it?</label>
+      <textarea id="q1" placeholder="The hill on the ___ side reaches a higher elevation because..."></textarea>
+    </div>
+    <div class="q">
+      <label><span class="num">2.</span>Where along the transect is the slope steepest? Identify the stretch (between which elevations) and explain how the contour crossings told you before you even plotted it.</label>
+      <textarea id="q2" placeholder="Steepest between ___ and ___ ft, where the crossings are closest together..."></textarea>
+    </div>
+    <div class="q">
+      <label><span class="num">3.</span>Real hills rarely look as jagged as a profile drawing. Briefly, why does a profile tend to exaggerate the terrain's steepness?</label>
+      <textarea id="q3" placeholder="Vertical exaggeration happens when..."></textarea>
+    </div>
+  </div>
+
+  <div class="submit-block">
+    <h2>Submit your work</h2>
+    <p>Enter your name, then download one PDF of your work and answers to upload to Canvas. (Prefer to paste text instead? Use Copy text.)</p>
+    <label class="name-row">Your name <input type="text" id="nameIn" placeholder="First Last"></label>
+    <div class="submit-actions">
+      <button class="btn primary" id="downloadPdf">Download submission PDF</button>
+      <button class="btn ghost" id="compile">Copy text</button>
+      <span class="copied" id="copied">Copied to clipboard</span>
+    </div>
+    <textarea id="output" readonly></textarea>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  const W=800,H=640;
+  const css=getComputedStyle(document.documentElement); const C=n=>css.getPropertyValue(n).trim();
+
+  // ---- map geometry ----
+  const TY=180; // transect y on map
+  const hills=[
+    {cx:250,cy:180,rings:[{e:440,r:110},{e:480,r:55}]},
+    {cx:560,cy:185,rings:[{e:440,r:150},{e:480,r:95},{e:520,r:45}]}
+  ];
+  // compute interior crossings (where transect meets each ring)
+  let crossings=[];
+  hills.forEach(h=>h.rings.forEach(r=>{
+    const dy=TY-h.cy; if(r.r>Math.abs(dy)){const dx=Math.sqrt(r.r*r.r-dy*dy);
+      crossings.push({x:h.cx-dx,e:r.e});crossings.push({x:h.cx+dx,e:r.e});}
+  }));
+  crossings.sort((a,b)=>a.x-b.x);
+  const A={x:60,e:400}, B={x:745,e:400};
+
+  // ---- profile grid ----
+  const ELEVS=[400,440,480,520,560];
+  const EMIN=400,EMAX=560;
+  const PY_TOP=395, PY_BOT=600; // px for EMAX..EMIN
+  const py=e=>PY_BOT-(e-EMIN)/(EMAX-EMIN)*(PY_BOT-PY_TOP);
+  const PX0=40,PX1=760;
+  const DIV=355;
+
+  let plotted=new Array(crossings.length).fill(null); // elevation chosen per crossing
+  let checked=false, showReveal=false;
+
+  // ---- map drawing ----
+  function drawMap(){
+    // hills (filled rings, large->small)
+    hills.forEach(h=>{
+      h.rings.forEach((r,k)=>{
+        ctx.beginPath();ctx.arc(h.cx,h.cy,r.r,0,7);
+        ctx.fillStyle=k===0?C('--hill'):shade(C('--hill'),-8*(k));ctx.fill();
+      });
+      h.rings.forEach(r=>{
+        ctx.beginPath();ctx.arc(h.cx,h.cy,r.r,0,7);
+        ctx.strokeStyle=r.e%80===0?C('--contour-index'):C('--contour');
+        ctx.lineWidth=r.e%80===0?2:1.5;ctx.stroke();
+        // label at top of ring
+        ctx.font="600 11px 'IBM Plex Mono', monospace";ctx.fillStyle=C('--contour-index');
+        ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(h.cx,h.cy-r.r,11,0,7);ctx.fill();
+        ctx.fillStyle=C('--contour-index');ctx.fillText(r.e,h.cx,h.cy-r.r);
+      });
+    });
+    // transect line
+    ctx.strokeStyle=C('--ink');ctx.lineWidth=2;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(A.x,TY);ctx.lineTo(B.x,TY);ctx.stroke();
+    // A / B endpoints
+    ctx.font="600 15px 'Fraunces', serif";ctx.fillStyle=C('--cherry');ctx.textAlign="center";ctx.textBaseline="middle";
+    [["A",A.x],["B",B.x]].forEach(([t,x])=>{
+      ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(x,TY,11,0,7);ctx.fill();
+      ctx.strokeStyle=C('--cherry');ctx.lineWidth=1.6;ctx.stroke();
+      ctx.fillStyle=C('--cherry');ctx.fillText(t,x,TY+1);
+    });
+    // crossing dots on transect
+    crossings.forEach(c=>{
+      ctx.beginPath();ctx.arc(c.x,TY,4,0,7);ctx.fillStyle=C('--cherry-dk');ctx.fill();
+      ctx.strokeStyle="#fff";ctx.lineWidth=1.4;ctx.stroke();
+    });
+  }
+  function shade(hex,amt){ // simple lighten/darken of #rrggbb
+    const n=parseInt(hex.slice(1),16);let r=(n>>16)+amt,g=((n>>8)&255)+amt,b=(n&255)+amt;
+    r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
+    return "#"+(r<<16|g<<8|b).toString(16).padStart(6,"0");
+  }
+
+  // ---- profile drawing ----
+  function drawProfile(){
+    // divider
+    ctx.strokeStyle=C('--paper-edge');ctx.lineWidth=1;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(0,DIV);ctx.lineTo(W,DIV);ctx.stroke();
+    ctx.font="600 12px 'IBM Plex Mono', monospace";ctx.fillStyle=C('--ink-soft');ctx.textAlign="left";ctx.textBaseline="alphabetic";
+    ctx.fillText("ELEVATION PROFILE  A — B",PX0,DIV+22);
+
+    // gridlines + labels
+    ctx.textAlign="right";ctx.textBaseline="middle";
+    ELEVS.forEach(e=>{
+      const y=py(e);
+      ctx.strokeStyle=C('--grid');ctx.lineWidth=1;ctx.setLineDash([]);
+      ctx.beginPath();ctx.moveTo(PX0,y);ctx.lineTo(PX1,y);ctx.stroke();
+      ctx.font="500 11px 'IBM Plex Mono', monospace";ctx.fillStyle=C('--ink-soft');
+      ctx.fillText(e,PX0-8,y);
+    });
+    // A/B markers on x-axis ends
+    ctx.textAlign="center";ctx.font="600 13px 'Fraunces',serif";ctx.fillStyle=C('--cherry');
+    ctx.fillText("A",A.x,PY_BOT+20);ctx.fillText("B",B.x,PY_BOT+20);
+
+    // guides from transect down to each crossing column
+    ctx.setLineDash([4,5]);ctx.strokeStyle=C('--guide');ctx.lineWidth=1.2;
+    crossings.forEach(c=>{ctx.beginPath();ctx.moveTo(c.x,TY+8);ctx.lineTo(c.x,PY_BOT+4);ctx.stroke();});
+    ctx.setLineDash([]);
+
+    // reveal correct profile
+    if(showReveal){
+      const pts=[A,...crossings,B];
+      ctx.strokeStyle=C('--guide');ctx.lineWidth=2.4;ctx.setLineDash([6,5]);
+      ctx.beginPath();pts.forEach((p,i)=>{const y=py(p.e);i?ctx.lineTo(p.x,y):ctx.moveTo(p.x,y);});ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // student's connecting line (anchors + placed, in x order)
+    const seq=[A];
+    crossings.forEach((c,i)=>{if(plotted[i]!=null)seq.push({x:c.x,e:plotted[i]});});
+    seq.push(B);
+    if(seq.length>=2){
+      ctx.strokeStyle=C('--ink');ctx.lineWidth=2.6;ctx.lineJoin="round";
+      ctx.beginPath();seq.forEach((p,i)=>{const y=py(p.e);i?ctx.lineTo(p.x,y):ctx.moveTo(p.x,y);});ctx.stroke();
+    }
+    // anchors
+    [A,B].forEach(a=>{const y=py(a.e);ctx.beginPath();ctx.arc(a.x,y,5,0,7);ctx.fillStyle=C('--ink');ctx.fill();});
+    // plotted dots
+    crossings.forEach((c,i)=>{
+      if(plotted[i]==null)return;const y=py(plotted[i]);
+      let col=C('--ink');
+      if(checked)col=(plotted[i]===c.e)?C('--correct'):C('--cherry');
+      ctx.beginPath();ctx.arc(c.x,y,6,0,7);ctx.fillStyle=col;ctx.fill();
+      ctx.strokeStyle="#fff";ctx.lineWidth=1.6;ctx.stroke();
+    });
+  }
+
+  function render(){
+    ctx.fillStyle=C('--paper');ctx.fillRect(0,0,W,H);
+    drawMap();drawProfile();
+    const n=plotted.filter(p=>p!=null).length;
+    document.getElementById('status').innerHTML=`Plotted <b>${n}</b> of ${crossings.length}`;
+  }
+
+  // ---- interaction ----
+  function pt(e){const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*(cv.width/r.width),(e.clientY-r.top)*(cv.height/r.height)];}
+  cv.addEventListener('pointerdown',e=>{
+    e.preventDefault();const [mx,my]=pt(e);
+    if(my<DIV+10)return; // only plot in profile region
+    // nearest crossing column
+    let bi=-1,bd=34;
+    crossings.forEach((c,i)=>{const d=Math.abs(c.x-mx);if(d<bd){bd=d;bi=i;}});
+    if(bi<0)return;
+    // snap to nearest elevation
+    let be=ELEVS[0],bde=1e9;
+    ELEVS.forEach(el=>{const d=Math.abs(py(el)-my);if(d<bde){bde=d;be=el;}});
+    plotted[bi]=be;checked=false;render();
+  });
+
+  document.getElementById('check').onclick=()=>{checked=true;render();};
+  document.getElementById('clear').onclick=()=>{plotted.fill(null);checked=false;render();};
+  document.getElementById('reveal').onchange=e=>{showReveal=e.target.checked;render();};
+
+  function nameStr(){return (document.getElementById('nameIn').value||'').trim();}
+  function bodyText(){
+    const n=plotted.filter(p=>p!=null).length;
+    const correct=crossings.reduce((s,c,i)=>s+(plotted[i]===c.e?1:0),0);
+    return `Points plotted: ${n} of ${crossings.length}   |   Matching the contours: ${correct} of ${crossings.length}
+
+1. Taller hill:
+${document.getElementById('q1').value.trim()||'[no answer]'}
+
+2. Steepest stretch:
+${document.getElementById('q2').value.trim()||'[no answer]'}
+
+3. Vertical exaggeration:
+${document.getElementById('q3').value.trim()||'[no answer]'}`;
+  }
+  function compile(){
+    const out='TOPOGRAPHIC MAPS \u2014 ACTIVITY 2: PROFILE BUILDER\nName: '+(nameStr()||'[your name]')+'\n\n'+bodyText();
+    const o=document.getElementById('output');o.style.display='block';o.value=out;
+    navigator.clipboard&&navigator.clipboard.writeText(out).then(()=>{
+      const c=document.getElementById('copied');c.classList.add('show');setTimeout(()=>c.classList.remove('show'),1800);
+    }).catch(()=>{});
+  }
+  document.getElementById('compile').onclick=compile;
+  document.getElementById('downloadPdf').onclick=function(){
+    if(!(window.jspdf&&window.jspdf.jsPDF)){alert('PDF tool is still loading \u2014 try again in a moment.');return;}
+    const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
+    const M=48,pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();let y=M;
+    doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text('Topographic Maps \u2014 Activity 2: Profile Builder',M,y);y+=20;
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(110);
+    doc.text((nameStr()||'[your name]')+'    '+new Date().toLocaleDateString(),M,y);y+=18;doc.setTextColor(20);
+    const img=cv.toDataURL('image/jpeg',0.92),props=doc.getImageProperties(img),iw=pw-2*M,ih=iw*props.height/props.width;
+    doc.addImage(img,'JPEG',M,y,iw,ih);y+=ih+18;doc.setFontSize(11);
+    doc.splitTextToSize(bodyText(),pw-2*M).forEach(function(ln){if(y>ph-M){doc.addPage();y=M;}doc.text(ln,M,y);y+=15;});
+    doc.save('TopoMaps_Activity2_'+(nameStr().replace(/\s+/g,'_')||'submission')+'.pdf');
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

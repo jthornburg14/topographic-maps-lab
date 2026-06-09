@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contour Drawing — Topographic Maps Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4efe1; --paper-edge:#e9e1cd; --panel:#fbf8f0;
+    --contour:#9a6b3c; --contour-index:#6e431f; --hint:#c2a878;
+    --water:#5e8ca3; --grid:#ddd3bc;
+    --ink:#2c2722; --ink-soft:#6f655a;
+    --cherry:#9e1b34; --cherry-dk:#7e1228;
+    --correct:#3f7d4e; --line:#d9cfb6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    line-height:1.55;
+    padding:28px 20px 64px;
+  }
+  .wrap{max-width:860px;margin:0 auto}
+  .lab-nav{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 22px;padding:8px;background:var(--panel);border:1px solid var(--paper-edge);border-radius:12px}
+  .lab-nav-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:14px;margin-right:6px;padding:0 6px;color:var(--ink)}
+  .lab-nav a{font-family:'IBM Plex Mono',monospace;font-size:12.5px;text-decoration:none;color:var(--ink-soft);padding:7px 11px;border-radius:8px;border:1px solid transparent;transition:background .12s,color .12s}
+  .lab-nav a:hover{background:#f0e6d2;color:var(--ink)}
+  .lab-nav a[aria-current="page"]{background:var(--cherry);color:#fff}
+  .lab-nav a:focus-visible{outline:2px solid var(--cherry);outline-offset:2px}
+  .name-row{display:flex;align-items:center;gap:9px;font-size:14px;margin-bottom:13px;flex-wrap:wrap}
+  .name-row input{font-family:'Inter',sans-serif;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 11px;background:#fff;color:var(--ink);min-width:200px}
+  .name-row input:focus{outline:2px solid var(--cherry);outline-offset:1px;border-color:var(--cherry)}
+  .submit-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{background:#f6f1e6}
+
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--cherry);font-weight:600;margin:0 0 6px;
+  }
+  h1{
+    font-family:'Fraunces',Georgia,serif;
+    font-weight:600;font-size:clamp(28px,5vw,40px);
+    line-height:1.05;margin:0 0 10px;letter-spacing:-.01em;
+  }
+  .lede{font-size:15.5px;color:var(--ink-soft);margin:0 0 22px;max-width:62ch}
+  .lede strong{color:var(--ink);font-weight:600}
+
+  .stage{
+    background:var(--panel);
+    border:1px solid var(--paper-edge);
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 1px 0 #fff inset, 0 8px 28px -18px rgba(60,45,20,.5);
+  }
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;
+    margin-bottom:14px;
+  }
+  .tool-group{display:flex;flex-direction:column;gap:7px}
+  .tool-label{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+  }
+  .levels{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;
+    border:1.5px solid var(--contour);color:var(--contour);
+    background:transparent;border-radius:8px;padding:7px 12px;cursor:pointer;
+    transition:background .12s,color .12s,transform .04s;
+  }
+  .chip:hover{background:#f0e6d2}
+  .chip[aria-pressed="true"]{background:var(--contour);color:#fff}
+  .chip.example{border-style:dashed;color:var(--ink-soft);border-color:var(--hint);cursor:default;font-style:italic}
+  .chip:active{transform:translateY(1px)}
+
+  .toggles{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  .switch{display:inline-flex;gap:7px;align-items:center;font-size:13.5px;cursor:pointer;user-select:none}
+  .switch input{accent-color:var(--cherry);width:16px;height:16px}
+
+  .canvas-frame{
+    position:relative;border-radius:10px;overflow:hidden;
+    border:1px solid var(--paper-edge);
+    background:
+      linear-gradient(#0000,#0000) padding-box,
+      var(--paper);
+  }
+  canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .btn{
+    font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;
+    border-radius:8px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);
+    background:#fff;color:var(--ink);transition:background .12s,border-color .12s;
+  }
+  .btn:hover{background:#f6f1e6}
+  .btn.primary{background:var(--cherry);color:#fff;border-color:var(--cherry)}
+  .btn.primary:hover{background:var(--cherry-dk)}
+  .btn:focus-visible,.chip:focus-visible,.switch input:focus-visible{
+    outline:2px solid var(--cherry);outline-offset:2px;
+  }
+  .hint-line{
+    font-size:12.5px;color:var(--ink-soft);margin-top:12px;
+    font-style:italic;
+  }
+  .legend{
+    display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;
+    font-size:12.5px;color:var(--ink-soft);
+  }
+  .legend span{display:inline-flex;gap:7px;align-items:center}
+  .swatch{width:22px;height:0;border-top-width:3px;border-top-style:solid;display:inline-block}
+
+  /* questions */
+  .questions{margin-top:34px}
+  .q{margin-bottom:20px}
+  .q label{display:block;font-weight:500;margin-bottom:7px;font-size:15px}
+  .q .num{font-family:'IBM Plex Mono',monospace;color:var(--cherry);font-weight:600;margin-right:6px}
+  textarea{
+    width:100%;border:1px solid var(--line);border-radius:9px;
+    padding:11px 13px;font-family:'Inter',sans-serif;font-size:14.5px;
+    background:var(--panel);resize:vertical;min-height:72px;color:var(--ink);
+  }
+  textarea:focus{outline:2px solid var(--cherry);outline-offset:1px;border-color:var(--cherry)}
+
+  .submit-block{
+    margin-top:30px;background:var(--panel);border:1px solid var(--paper-edge);
+    border-radius:14px;padding:20px;
+  }
+  .submit-block h2{font-family:'Fraunces',serif;font-weight:600;font-size:20px;margin:0 0 6px}
+  .submit-block p{margin:0 0 14px;font-size:13.5px;color:var(--ink-soft)}
+  #output{
+    width:100%;min-height:150px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;
+    border:1px dashed var(--line);border-radius:9px;padding:13px;background:#fff;
+    white-space:pre-wrap;color:var(--ink);margin-top:14px;display:none;
+  }
+  .copied{color:var(--correct);font-size:13px;font-weight:500;margin-left:10px;opacity:0;transition:opacity .2s}
+  .copied.show{opacity:1}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="lab-nav" aria-label="Lab activities">
+    <span class="lab-nav-title">Topographic Maps Lab</span>
+    <a href="contour-drawing.html" aria-current="page">1 · Draw contours</a>
+    <a href="profile-builder.html">2 · Build a profile</a>
+    <a href="real-quad-reading.html">3 · Read the real quad</a>
+  </nav>
+  <p class="eyebrow">Topographic Maps · Activity 1</p>
+  <h1>Draw the contour lines</h1>
+  <p class="lede">The dots below are spot elevations measured in the field, in feet. Connect points of equal elevation to draw each contour line — the <strong>240&nbsp;ft</strong> line is done for you as an example. Pick a value, turn on crossing hints if you want help finding where a line should pass, and click to lay down each line. The contour interval is <strong>20&nbsp;ft</strong>.</p>
+
+  <div class="stage">
+    <div class="toolbar">
+      <div class="tool-group">
+        <span class="tool-label">Contour to draw</span>
+        <div class="levels" id="levels">
+          <button class="chip example" disabled>240 (example)</button>
+        </div>
+      </div>
+      <div class="tool-group">
+        <span class="tool-label">Helpers</span>
+        <div class="toggles">
+          <label class="switch"><input type="checkbox" id="hintsToggle">Crossing hints</label>
+          <label class="switch"><input type="checkbox" id="revealToggle">Show model answer</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-frame">
+      <canvas id="map" width="780" height="620" aria-label="Elevation point grid for drawing contour lines"></canvas>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="finishLine">Finish this line</button>
+      <button class="btn" id="undo">Undo point</button>
+      <button class="btn" id="clearLevel">Clear selected line</button>
+      <button class="btn" id="clearAll">Clear everything</button>
+    </div>
+    <p class="hint-line">Click to drop points along a line. When a line is complete, click <em>Finish this line</em> (or double-click) and pick the next value. A hill has nested loops, so most lines close back on themselves.</p>
+
+    <div class="legend">
+      <span><i class="swatch" style="border-color:var(--contour)"></i>Contour line</span>
+      <span><i class="swatch" style="border-color:var(--contour-index)"></i>Index contour (labeled)</span>
+      <span><i class="swatch" style="border-color:var(--cherry);border-top-style:solid"></i>Your current line</span>
+      <span><i class="swatch" style="border-color:var(--hint);border-top-style:dashed"></i>Model answer</span>
+    </div>
+  </div>
+
+  <div class="questions">
+    <p class="eyebrow" style="margin-top:6px">Interpret what you drew</p>
+    <div class="q">
+      <label><span class="num">1.</span>Where on this map is the slope steepest, and how do the contour lines tell you that? Describe the location (e.g. "northeast flank").</label>
+      <textarea id="q1" placeholder="Steepest where lines are closest together..."></textarea>
+    </div>
+    <div class="q">
+      <label><span class="num">2.</span>What is the approximate relief of this map — the difference between the highest contour you can identify and the lowest? Show the two values.</label>
+      <textarea id="q2" placeholder="Highest contour ≈ ___ ft, lowest ≈ ___ ft, relief ≈ ___ ft"></textarea>
+    </div>
+    <div class="q">
+      <label><span class="num">3.</span>If rain fell on the peak, describe the path water would take downhill off one side. Which direction would it flow, and how do the contours support your answer?</label>
+      <textarea id="q3" placeholder="Water flows downhill, perpendicular to the contours..."></textarea>
+    </div>
+  </div>
+
+  <div class="submit-block">
+    <h2>Submit your work</h2>
+    <p>Enter your name, then download one PDF of your work and answers to upload to Canvas. (Prefer to paste text instead? Use Copy text.)</p>
+    <label class="name-row">Your name <input type="text" id="nameIn" placeholder="First Last"></label>
+    <div class="submit-actions">
+      <button class="btn primary" id="downloadPdf">Download submission PDF</button>
+      <button class="btn ghost" id="compile">Copy text</button>
+      <span class="copied" id="copied">Copied to clipboard</span>
+    </div>
+    <textarea id="output" readonly></textarea>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  // ---- terrain (rows north->south, cols west->east), feet ----
+  const GRID = [
+    [200,212,222,232,240,244,246,240,230],
+    [210,226,248,268,282,288,280,262,244],
+    [222,246,278,312,336,340,318,280,250],
+    [232,262,300,344,366,358,326,286,252],
+    [224,250,284,320,348,350,322,282,246],
+    [212,232,258,290,314,316,292,264,238],
+    [202,216,236,260,280,286,268,248,228]
+  ];
+  const ROWS = GRID.length, COLS = GRID[0].length;
+  const SP = 80, MX = 70, MY = 64;
+  const W = MX*2 + (COLS-1)*SP, H = MY*2 + (ROWS-1)*SP;
+
+  const DRAW_LEVELS = [260,280,300,320,340];
+  const ALL_LEVELS  = [220,240,260,280,300,320,340,360];
+  const EXAMPLE_LEVEL = 240;
+
+  const canvas = document.getElementById('map');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const css = getComputedStyle(document.documentElement);
+  const C = n => css.getPropertyValue(n).trim();
+
+  let selected = DRAW_LEVELS[0];
+  let showHints = false, showModel = false;
+  // student lines: { level: [ [ {x,y}... ], ... ] }
+  const lines = {}; DRAW_LEVELS.forEach(l=>lines[l]=[]);
+  let current = []; // in-progress polyline points
+
+  const X = i => MX + i*SP;
+  const Y = j => MY + j*SP;
+
+  // ---- marching squares ----
+  function lerp(x1,y1,v1,x2,y2,v2,L){const t=(L-v1)/(v2-v1);return [x1+(x2-x1)*t,y1+(y2-y1)*t];}
+  function contourSegs(level){
+    const segs=[];
+    for(let j=0;j<ROWS-1;j++)for(let i=0;i<COLS-1;i++){
+      const tl=GRID[j][i],tr=GRID[j][i+1],br=GRID[j+1][i+1],bl=GRID[j+1][i];
+      const xl=X(i),xr=X(i+1),yt=Y(j),yb=Y(j+1);
+      let idx=0; if(tl>level)idx|=8; if(tr>level)idx|=4; if(br>level)idx|=2; if(bl>level)idx|=1;
+      const a=()=>lerp(xl,yt,tl,xr,yt,tr,level); // top
+      const b=()=>lerp(xr,yt,tr,xr,yb,br,level); // right
+      const c=()=>lerp(xl,yb,bl,xr,yb,br,level); // bottom
+      const d=()=>lerp(xl,yt,tl,xl,yb,bl,level); // left
+      const two={1:[d,c],2:[c,b],3:[d,b],4:[a,b],6:[a,c],7:[a,d],8:[a,d],9:[a,c],11:[a,b],12:[d,b],13:[c,b],14:[d,c]};
+      if(two[idx]){segs.push([two[idx][0](),two[idx][1]()]);}
+      else if(idx===5){segs.push([d(),a()]);segs.push([b(),c()]);}
+      else if(idx===10){segs.push([a(),b()]);segs.push([c(),d()]);}
+    }
+    return segs;
+  }
+  // crossing points along grid edges (for hints / snapping)
+  function crossings(level){
+    const pts=[];
+    for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++){
+      const v=GRID[j][i];
+      if(i<COLS-1){const v2=GRID[j][i+1]; if((v-level)*(v2-level)<0){pts.push(lerp(X(i),Y(j),v,X(i+1),Y(j),v2,level));}}
+      if(j<ROWS-1){const v2=GRID[j+1][i]; if((v-level)*(v2-level)<0){pts.push(lerp(X(i),Y(j),v,X(i),Y(j+1),v2,level));}}
+    }
+    return pts;
+  }
+  const isIndex = L => L%100===0;
+
+  // ---- drawing ----
+  function clear(){ctx.fillStyle=C('--paper');ctx.fillRect(0,0,W,H);}
+  function drawGrid(){
+    ctx.strokeStyle=C('--grid');ctx.lineWidth=1;
+    for(let i=0;i<COLS;i++){ctx.beginPath();ctx.moveTo(X(i),MY-18);ctx.lineTo(X(i),H-MY+18);ctx.stroke();}
+    for(let j=0;j<ROWS;j++){ctx.beginPath();ctx.moveTo(MX-18,Y(j));ctx.lineTo(W-MX+18,Y(j));ctx.stroke();}
+  }
+  function drawDots(){
+    ctx.font="500 13px 'IBM Plex Mono', monospace";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++){
+      const x=X(i),y=Y(j);
+      ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(x,y,12,0,7);ctx.fill();
+      ctx.fillStyle=C('--ink-soft');ctx.beginPath();ctx.arc(x,y,2.4,0,7);ctx.fill();
+      ctx.fillStyle=C('--ink');ctx.fillText(GRID[j][i], x, y-17);
+    }
+  }
+  function strokeSegs(segs,color,width,dash){
+    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";
+    if(dash)ctx.setLineDash(dash);
+    segs.forEach(s=>{ctx.beginPath();ctx.moveTo(s[0][0],s[0][1]);ctx.lineTo(s[1][0],s[1][1]);ctx.stroke();});
+    ctx.restore();
+  }
+  function labelLevel(level,segs,color){
+    if(!segs.length)return;
+    const p=segs[Math.floor(segs.length/2)][0];
+    ctx.save();
+    ctx.font="600 12px 'IBM Plex Mono', monospace";
+    ctx.fillStyle="#fff";ctx.strokeStyle="#fff";ctx.lineWidth=4;ctx.textAlign="center";
+    ctx.strokeText(level,p[0],p[1]);
+    ctx.fillStyle=color;ctx.fillText(level,p[0],p[1]);
+    ctx.restore();
+  }
+  function drawPolyline(pts,color,width){
+    if(pts.length<1)return;
+    ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=width;ctx.lineJoin="round";ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(pts[0][0]||pts[0].x,pts[0][1]||pts[0].y);
+    for(let k=1;k<pts.length;k++){const p=pts[k];ctx.lineTo(p[0]||p.x,p[1]||p.y);}
+    ctx.stroke();
+    pts.forEach(p=>{const px=p[0]||p.x,py=p[1]||p.y;ctx.beginPath();ctx.arc(px,py,3.2,0,7);ctx.fill();});
+    ctx.restore();
+  }
+
+  function render(){
+    clear();drawGrid();
+
+    // model answer (all levels) faint dashed
+    if(showModel){
+      ALL_LEVELS.forEach(L=>{
+        if(L===EXAMPLE_LEVEL)return;
+        strokeSegs(contourSegs(L),C('--hint'),1.6,[5,5]);
+      });
+    }
+    // example contour (always)
+    const exSegs=contourSegs(EXAMPLE_LEVEL);
+    strokeSegs(exSegs,C('--contour'),2.2);
+    labelLevel(EXAMPLE_LEVEL,exSegs,C('--contour'));
+
+    // student finished lines
+    DRAW_LEVELS.forEach(L=>{
+      const color=isIndex(L)?C('--contour-index'):C('--contour');
+      const w=isIndex(L)?3:2.2;
+      lines[L].forEach(poly=>{drawPolyline(poly,color,w);});
+      if(isIndex(L)&&lines[L].length){
+        const poly=lines[L][0];const mid=poly[Math.floor(poly.length/2)];
+        if(mid)labelLevel(L,[[[mid[0]||mid.x,mid[1]||mid.y],[0,0]]],C('--contour-index'));
+      }
+    });
+
+    drawDots();
+
+    // crossing hints for selected level
+    if(showHints){
+      crossings(selected).forEach(p=>{
+        ctx.save();ctx.fillStyle=C('--hint');ctx.globalAlpha=.9;
+        ctx.beginPath();ctx.arc(p[0],p[1],5,0,7);ctx.fill();
+        ctx.globalAlpha=1;ctx.strokeStyle="#fff";ctx.lineWidth=1.4;ctx.stroke();
+        ctx.restore();
+      });
+    }
+    // current in-progress line (cherry)
+    drawPolyline(current,C('--cherry'),2.6);
+  }
+
+  // ---- interaction ----
+  function canvasPoint(e){
+    const r=canvas.getBoundingClientRect();
+    const sx=canvas.width/r.width, sy=canvas.height/r.height;
+    return [(e.clientX-r.left)*sx,(e.clientY-r.top)*sy];
+  }
+  function snap(pt){
+    if(!showHints)return pt;
+    let best=null,bd=16*16;
+    crossings(selected).forEach(c=>{
+      const dx=c[0]-pt[0],dy=c[1]-pt[1],d=dx*dx+dy*dy;
+      if(d<bd){bd=d;best=c;}
+    });
+    return best?[best[0],best[1]]:pt;
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    const p=snap(canvasPoint(e));
+    current.push(p);render();
+  });
+  canvas.addEventListener('dblclick',()=>finishLine());
+
+  function finishLine(){
+    if(current.length>=2){lines[selected].push(current);}
+    current=[];render();
+  }
+  document.getElementById('finishLine').onclick=finishLine;
+  document.getElementById('undo').onclick=()=>{
+    if(current.length){current.pop();}
+    else if(lines[selected].length){current=lines[selected].pop();current.pop();}
+    render();
+  };
+  document.getElementById('clearLevel').onclick=()=>{lines[selected]=[];current=[];render();};
+  document.getElementById('clearAll').onclick=()=>{DRAW_LEVELS.forEach(l=>lines[l]=[]);current=[];render();};
+
+  document.getElementById('hintsToggle').onchange=e=>{showHints=e.target.checked;render();};
+  document.getElementById('revealToggle').onchange=e=>{showModel=e.target.checked;render();};
+
+  // build level chips
+  const levelsEl=document.getElementById('levels');
+  DRAW_LEVELS.forEach((L,k)=>{
+    const b=document.createElement('button');
+    b.className='chip';b.textContent=L+(isIndex(L)?' (index)':'');
+    b.setAttribute('aria-pressed', k===0?'true':'false');
+    b.onclick=()=>{
+      if(current.length>=2)finishLine(); else current=[];
+      selected=L;
+      [...levelsEl.querySelectorAll('.chip:not(.example)')].forEach(c=>c.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');
+      render();
+    };
+    levelsEl.appendChild(b);
+  });
+
+  // ---- submission ----
+  function nameStr(){return (document.getElementById('nameIn').value||'').trim();}
+  function bodyText(){
+    const counts=DRAW_LEVELS.map(L=>`  ${L} ft: ${lines[L].length} line(s) drawn`).join('\n');
+    return `Lines drawn:
+${counts}
+
+1. Steepest slope:
+${document.getElementById('q1').value.trim()||'[no answer]'}
+
+2. Relief:
+${document.getElementById('q2').value.trim()||'[no answer]'}
+
+3. Water flow off the peak:
+${document.getElementById('q3').value.trim()||'[no answer]'}`;
+  }
+  function compile(){
+    const out='TOPOGRAPHIC MAPS \u2014 ACTIVITY 1: CONTOUR DRAWING\nName: '+(nameStr()||'[your name]')+'\n\n'+bodyText();
+    const o=document.getElementById('output');o.style.display='block';o.value=out;
+    navigator.clipboard&&navigator.clipboard.writeText(out).then(()=>{
+      const c=document.getElementById('copied');c.classList.add('show');setTimeout(()=>c.classList.remove('show'),1800);
+    }).catch(()=>{});
+  }
+  document.getElementById('compile').onclick=compile;
+  document.getElementById('downloadPdf').onclick=function(){
+    if(!(window.jspdf&&window.jspdf.jsPDF)){alert('PDF tool is still loading \u2014 try again in a moment.');return;}
+    const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
+    const M=48,pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();let y=M;
+    doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text('Topographic Maps \u2014 Activity 1: Contour Drawing',M,y);y+=20;
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(110);
+    doc.text((nameStr()||'[your name]')+'    '+new Date().toLocaleDateString(),M,y);y+=18;doc.setTextColor(20);
+    const img=canvas.toDataURL('image/jpeg',0.92),props=doc.getImageProperties(img),iw=pw-2*M,ih=iw*props.height/props.width;
+    doc.addImage(img,'JPEG',M,y,iw,ih);y+=ih+18;doc.setFontSize(11);
+    doc.splitTextToSize(bodyText(),pw-2*M).forEach(function(ln){if(y>ph-M){doc.addPage();y=M;}doc.text(ln,M,y);y+=15;});
+    doc.save('TopoMaps_Activity1_'+(nameStr().replace(/\s+/g,'_')||'submission')+'.pdf');
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
